@@ -44,6 +44,22 @@ Puppet::Type.type(:firewall).provide :iptables, :parent => Puppet::Provider::Fir
   confine :kernel => :linux
 
   iptables_version = Facter.value('iptables_version')
+  if (iptables_version.nil? or iptables_version.empty?)
+    # The iptables version could not be determined, probably because it isn't installed yet
+    # Try to make a valid assumption on the iptables version which will be installed during
+    # the puppet run based on the OS release
+    if :osfamily == 'RedHat'
+      case :operatingsystemmajrelease
+      when '5'
+        iptables_version = '1.3.5'
+      when '6'
+        iptables_version = '1.4.7'
+      when '7'
+        iptables_version = '1.4.21'
+      end
+    end
+  end
+
   if (iptables_version and Puppet::Util::Package.versioncmp(iptables_version, '1.4.1') < 0)
     mark_flag = '--set-mark'
   else
